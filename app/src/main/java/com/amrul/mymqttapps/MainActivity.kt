@@ -13,16 +13,19 @@ import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
-    // Mendeklarasikan launcher untuk permintaan izin lokasi (ACCESS_FINE_LOCATION)
-    private val requestFineLocationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            // Izin ACCESS_FINE_LOCATION diberikan, lanjutkan ke permintaan ACCESS_BACKGROUND_LOCATION jika diperlukan
+    // Mendeklarasikan launcher untuk permintaan izin lokasi (ACCESS_FINE_LOCATION dan ACCESS_COARSE_LOCATION)
+    private val requestLocationPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val locationPermissionGranted =
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (locationPermissionGranted) {
+            // Izin lokasi diberikan, lanjutkan untuk meminta izin background location
             requestBackgroundLocationPermission()
         } else {
-            // Izin ACCESS_FINE_LOCATION ditolak
-            Log.d("MainActivity", "Izin ACCESS_FINE_LOCATION tidak diberikan")
+            // Izin lokasi ditolak
+            Log.d("MainActivity", "Izin lokasi tidak diberikan")
             Toast.makeText(this, "Izin lokasi diperlukan", Toast.LENGTH_SHORT).show()
         }
     }
@@ -67,8 +70,13 @@ class MainActivity : AppCompatActivity() {
             // Izin lokasi sudah diberikan, lanjutkan ke permintaan ACCESS_BACKGROUND_LOCATION jika perangkat memenuhi syarat
             requestBackgroundLocationPermission()
         } else {
-            // Minta izin ACCESS_FINE_LOCATION jika belum diberikan
-            requestFineLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            // Minta izin lokasi
+            requestLocationPermissionsLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
         }
     }
 

@@ -2,6 +2,7 @@ package com.amrul.mymqttapps
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -58,12 +59,25 @@ class LocationService : Service() {
         Log.d("LocationService", "Latitude: $latitude, Longitude: $longitude")
     }
 
-    // Membuat notifikasi untuk Foreground Service
+    // Membuat notifikasi untuk Foreground Service dengan tombol "Stop"
     private fun startForegroundService() {
+        val stopIntent = Intent(this, LocationService::class.java).apply {
+            action = "STOP_LOCATION_SERVICE"
+        }
+
+        // Menambahkan FLAG_IMMUTABLE atau FLAG_MUTABLE pada PendingIntent
+        val stopPendingIntent: PendingIntent = PendingIntent.getService(
+            this,
+            0,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE // Menggunakan FLAG_IMMUTABLE jika tidak perlu dimodifikasi
+        )
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Location Service")
             .setContentText("Aplikasi sedang melacak lokasi Anda.")
             .setSmallIcon(R.drawable.ic_launcher_foreground) // Sesuaikan dengan ikon aplikasi Anda
+            .addAction(R.drawable.ic_launcher_foreground, "Stop", stopPendingIntent) // Tambahkan tombol "Stop"
             .build()
 
         startForeground(1, notification)
@@ -78,6 +92,14 @@ class LocationService : Service() {
         super.onDestroy()
         // Hentikan pembaruan lokasi saat service dihentikan
         locationManager.removeUpdates(locationListener)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "STOP_LOCATION_SERVICE") {
+            stopSelf() // Hentikan service ketika tombol Stop ditekan
+            Log.d("LocationService", "Service dihentikan")
+        }
+        return START_STICKY
     }
 
     companion object {
