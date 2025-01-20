@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 class LocationService : Service() {
 
     private lateinit var locationManager: LocationManager
+    private lateinit var notificationManager: NotificationManager
 
     override fun onCreate() {
         super.onCreate()
@@ -27,7 +28,7 @@ class LocationService : Service() {
                 "Location Service Channel",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
-            val notificationManager =
+            notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
@@ -57,10 +58,14 @@ class LocationService : Service() {
         val latitude = location.latitude
         val longitude = location.longitude
         Log.d("LocationService", "Latitude: $latitude, Longitude: $longitude")
+
+        updateNotification(latitude, longitude)
     }
 
     // Membuat notifikasi untuk Foreground Service dengan tombol "Stop"
     private fun startForegroundService() {
+        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
         val stopIntent = Intent(this, LocationService::class.java).apply {
             action = "STOP_LOCATION_SERVICE"
         }
@@ -80,7 +85,31 @@ class LocationService : Service() {
             .addAction(R.drawable.ic_launcher_foreground, "Stop", stopPendingIntent) // Tambahkan tombol "Stop"
             .build()
 
-        startForeground(1, notification)
+        startForeground(NOTIFICATION_ID, notification)
+    }
+
+    // Metode untuk memperbarui notifikasi dengan lokasi terbaru
+    private fun updateNotification(latitude: Double, longitude: Double) {
+        val stopIntent = Intent(this, LocationService::class.java).apply {
+            action = "STOP_LOCATION_SERVICE"
+        }
+
+        val stopPendingIntent: PendingIntent = PendingIntent.getService(
+            this,
+            0,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Location Service")
+            .setContentText("Latitude: $latitude, Longitude: $longitude") // Lokasi terbaru
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .addAction(R.drawable.ic_launcher_foreground, "Stop", stopPendingIntent) // Tombol "Stop" tetap ada
+            .build()
+
+        // Perbarui notifikasi
+        notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -104,6 +133,7 @@ class LocationService : Service() {
 
     companion object {
         private const val CHANNEL_ID = "LocationServiceChannel"
+        private const val NOTIFICATION_ID = 1
         private const val LOCATION_UPDATE_INTERVAL: Long = 5000 // 5 detik
         private const val LOCATION_UPDATE_DISTANCE: Float = 0f // Tidak ada jarak minimal
     }
