@@ -33,9 +33,16 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
+    }
 }
 
 dependencies {
+
+    implementation("androidx.legacy:legacy-support-v4:1.0.0")
+    implementation("com.github.hannesa2:paho.mqtt.android:4.2")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
