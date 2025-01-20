@@ -21,4 +21,11 @@
         android:layout_marginTop="32dp"
         android:text="Location Background" />
 
+    <Button
+        android:id="@+id/btn_mqtt_background"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="MQTT Background" />
+
 </LinearLayout>

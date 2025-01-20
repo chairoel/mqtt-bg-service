@@ -24,6 +24,10 @@ class HomeActivity : AppCompatActivity() {
                 startActivity(Intent(this@HomeActivity, LocationBackgroundActivity::class.java))
             }
 
+            btnMqttBackground.setOnClickListener {
+                startActivity(Intent(this@HomeActivity, MqttBackgroundActivity::class.java))
+            }
+
         }
     }
 }
