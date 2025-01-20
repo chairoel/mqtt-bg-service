@@ -15,7 +15,6 @@ import com.amrul.mymqttapps.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var mqttClient: MQTTClient
 
     // Mendeklarasikan launcher untuk permintaan izin lokasi (ACCESS_FINE_LOCATION dan ACCESS_COARSE_LOCATION)
     private val requestLocationPermissionsLauncher = registerForActivityResult(
@@ -67,56 +66,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-//        cekPermission()
-        mqttClient = MQTTClient(this, SERVER_URL, CLIENT_ID)
-
-        binding.apply {
-            SERVER_URL.also { tvServer.text = it }
-            btnConnect.setOnClickListener {
-                mqttClient.connect(
-                    onConnected = {
-                        runOnUiThread {
-                            "Connected".also { binding.tvStatusConnect.text = it }
-                        }
-                        mqttClient.subscribe(SUBSCRIBE_TOPIC)
-                    },
-                    onConnectionFailed = {
-                        runOnUiThread {
-                            "Connection failed".also { tvStatusConnect.text = it }
-                        }
-                    }
-                )
-
-                mqttClient.setMessageListener { topic, message ->
-                    runOnUiThread {
-                        binding.tvData.append("Message from $topic: $message\n")
-                    }
-                }
-            }
-
-            btnDisconnect.setOnClickListener {
-                mqttClient.disconnect { isSuccess ->
-                    if (isSuccess) {
-                        Log.d("MainActivity", "Disconnected successfully")
-                        runOnUiThread {
-                            "Disconnect".also { tvStatusConnect.text = it }
-                            binding.tvData.text = ""
-                        }
-                    } else {
-                        Log.e("MainActivity", "Failed to disconnect")
-                        runOnUiThread {
-                            "Disconnect Failed".also { tvStatusConnect.text = it }
-                        }
-                    }
-                }
-            }
-        }
-
-//        val _btn2 = findViewById<Button>(R.id.streaming_publishtext)
-//        var _input = findViewById<EditText>(R.id.streaming_textinput)
-//        _btn2.setOnClickListener {
-//            publish("galihashari", _input.text.toString())
-//        }
+        cekPermission()
     }
 
     private fun cekPermission() {
@@ -164,11 +114,5 @@ class MainActivity : AppCompatActivity() {
         // Memulai service lokasi
         val serviceIntent = Intent(this, LocationService::class.java)
         startService(serviceIntent)
-    }
-
-    companion object {
-        const val SERVER_URL = "tcp://track.transjakarta.co.id:1883" // Server hostname dan port
-        const val CLIENT_ID = "001" // Ganti dengan ID unik
-        const val SUBSCRIBE_TOPIC = "/bus/MYS-17029" // Topic yang akan disubscribe
     }
 }
