@@ -93,6 +93,23 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+
+            btnDisconnect.setOnClickListener {
+                mqttClient.disconnect { isSuccess ->
+                    if (isSuccess) {
+                        Log.d("MainActivity", "Disconnected successfully")
+                        runOnUiThread {
+                            "Disconnect".also { tvStatusConnect.text = it }
+                            binding.tvData.text = ""
+                        }
+                    } else {
+                        Log.e("MainActivity", "Failed to disconnect")
+                        runOnUiThread {
+                            "Disconnect Failed".also { tvStatusConnect.text = it }
+                        }
+                    }
+                }
+            }
         }
 
 //        val _btn2 = findViewById<Button>(R.id.streaming_publishtext)

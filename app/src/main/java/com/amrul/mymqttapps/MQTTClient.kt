@@ -66,9 +66,10 @@ class MQTTClient(
         }
     }
 
-    fun disconnect() {
+    fun disconnect(onResult: (Boolean) -> Unit) {
         if (!isConnected) {
             Log.d("MQTTClient", "Already disconnected")
+            onResult(false) // Kembalikan false jika sudah terputus
             return
         }
 
@@ -77,16 +78,20 @@ class MQTTClient(
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     isConnected = false // Tandai sebagai tidak terhubung
                     Log.d("MQTTClient", "Disconnected from broker")
+                    onResult(true) // Kembalikan true jika berhasil
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                     Log.d("MQTTClient", "Failed to disconnect from broker")
+                    onResult(false) // Kembalikan false jika gagal
                 }
             })
         } catch (e: MqttException) {
             e.printStackTrace()
+            onResult(false) // Kembalikan false jika terjadi exception
         }
     }
+
 
 
     private fun reconnect() {
