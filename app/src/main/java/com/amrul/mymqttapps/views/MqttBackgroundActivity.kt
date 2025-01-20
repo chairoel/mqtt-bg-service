@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -56,11 +57,19 @@ class MqttBackgroundActivity : AppCompatActivity() {
     }
 
     private fun updatePublishedData(data: String?) {
-        val formattedData = data
-            ?.replace(",", ",\n")
-            ?.replace("{", "{\n")
-            ?.replace("}", "\n}") ?: "No data available"
-        binding.tvData.text = formattedData
+        if (data?.isNotEmpty() == true) {
+            val formattedData = data
+                .replace(",", ",\n")
+                .replace("{", "")
+                .replace("}", "")
+            binding.tvBracketOpen.visibility = View.VISIBLE
+            binding.tvBracketClose.visibility = View.VISIBLE
+            binding.tvData.text = formattedData
+        } else {
+            binding.tvBracketOpen.visibility = View.GONE
+            binding.tvBracketClose.visibility = View.GONE
+            binding.tvData.text = "-"
+        }
     }
 
     private fun startMQTTService() {
@@ -74,7 +83,7 @@ class MqttBackgroundActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, MQTTService::class.java)
         stopService(serviceIntent)
         updateUI("Service Stopped", false)
-        updatePublishedData("-")
+        updatePublishedData("")
         Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show()
     }
 
