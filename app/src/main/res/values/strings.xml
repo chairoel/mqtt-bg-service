@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">My Mqtt Apps</string>
+    <string name="tracking_obu_new">Tracking OBU New</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="data">Data:</string>
+    <string name="bracket_open">{</string>
+    <string name="bracket_close">{</string>
+    <string name="default_empty">-</string>
 </resources>
