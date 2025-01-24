@@ -9,4 +9,34 @@
     </style>
 
     <style name="Theme.MyMqttApps" parent="Base.Theme.MyMqttApps" />
+
+    <style name="FullScreenOnDragBottomSheet" parent="Theme.Material3.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/CustomDraggableBottomSheetStyle</item>
+    </style>
+
+    <style name="CustomDraggableBottomSheetStyle" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="behavior_peekHeight">300dp</item> <!-- Tinggi awal -->
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="DraggableFullScreenBottomSheet" parent="Theme.Material3.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/DraggableBottomSheetStyle</item>
+    </style>
+
+    <style name="DraggableBottomSheetStyle" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="behavior_peekHeight">1100dp</item> <!-- Tinggi awal -->
+        <item name="android:layout_height">match_parent</item> <!-- Mendukung layar penuh -->
+    </style>
+
+    <!-- Bentuk dengan sudut bulat -->
+    <style name="CustomShapeAppearance" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+    </style>
+
+    <!-- Bentuk dengan sudut rata -->
+    <style name="FlatShapeAppearance" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerFamily">cut</item>
+    </style>
 </resources>

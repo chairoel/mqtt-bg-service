@@ -5,15 +5,18 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.amrul.mymqttapps.Constants
+import com.amrul.mymqttapps.OnSettingsSaveListener
 import com.amrul.mymqttapps.databinding.ActivityMqttBackgroundBinding
 import com.amrul.mymqttapps.mqtt.MQTTService
 
-class MqttBackgroundActivity : AppCompatActivity() {
+class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
 
     private lateinit var binding: ActivityMqttBackgroundBinding
 
@@ -22,8 +25,10 @@ class MqttBackgroundActivity : AppCompatActivity() {
         binding = ActivityMqttBackgroundBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val (serverUrl, clientId, topic) = loadConfig(this@MqttBackgroundActivity)
+
         binding.apply {
-            tvServer.text = SERVER_URL
+            tvServer.text = serverUrl
 
             btnConnect.setOnClickListener {
                 startMQTTService()
@@ -32,6 +37,13 @@ class MqttBackgroundActivity : AppCompatActivity() {
             // Tombol Disconnect
             btnDisconnect.setOnClickListener {
                 stopMQTTService()
+            }
+
+            btnSetting.setOnClickListener {
+                val bottomSheetFragment =
+                    SettingsBottomSheet.newInstance(serverUrl, clientId, topic)
+                bottomSheetFragment.onSettingsSaveListener = this@MqttBackgroundActivity
+                bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
             }
         }
     }
@@ -51,12 +63,12 @@ class MqttBackgroundActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == MQTTService.ACTION_PUBLISH_DATA) {
                 val data = intent.getStringExtra(MQTTService.EXTRA_DATA)
-                updatePublishedData(data)
+                updatePublishedDataUI(data)
             }
         }
     }
 
-    private fun updatePublishedData(data: String?) {
+    private fun updatePublishedDataUI(data: String?) {
         if (data?.isNotEmpty() == true) {
             val formattedData = data
                 .replace(",", ",\n")
@@ -83,7 +95,7 @@ class MqttBackgroundActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, MQTTService::class.java)
         stopService(serviceIntent)
         updateUI("Service Stopped", false)
-        updatePublishedData("")
+        updatePublishedDataUI("")
         Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show()
     }
 
@@ -97,6 +109,46 @@ class MqttBackgroundActivity : AppCompatActivity() {
                 )
             )
         }
+    }
+
+    private fun loadConfig(context: Context): Triple<String, String, String> {
+        val pref = context.getSharedPreferences(Constants.MQTT_CONFIG, Context.MODE_PRIVATE)
+        val serverUrl = pref.getString(Constants.SERVER_URL, Constants.SERVER_URL_DEFAULT)
+        val clientId = pref.getString(Constants.CLIENT_ID, Constants.CLIENT_ID_DEFAULT)
+        val publishTopic = pref.getString(Constants.PUBLISH_TOPIC, Constants.PUBLISH_TOPIC_DEFAULT)
+
+        return Triple(serverUrl ?: "", clientId ?: "", publishTopic ?: "")
+    }
+
+    private fun saveMQTTConfig(
+        context: Context,
+        serverUrl: String,
+        clientId: String,
+        publishTopic: String
+    ) {
+        val sharedPreferences =
+            context.getSharedPreferences(Constants.MQTT_CONFIG, Context.MODE_PRIVATE)
+
+        val editor = sharedPreferences.edit()
+        editor.putString(Constants.SERVER_URL, serverUrl)
+        editor.putString(Constants.CLIENT_ID, clientId)
+        editor.putString(Constants.PUBLISH_TOPIC, publishTopic)
+        editor.apply()
+    }
+
+    override fun onSettingsSave(serverUrl: String, clientId: String, publishTopic: String) {
+        Log.d("SettingsSave", "Server URL: $serverUrl")
+        Log.d("SettingsSave", "Client ID: $clientId")
+        Log.d("SettingsSave", "Publish Topic: $publishTopic")
+
+        binding.tvServer.text = serverUrl
+
+        saveMQTTConfig(
+            context = this,
+            serverUrl = serverUrl,
+            clientId = clientId,
+            publishTopic = publishTopic
+        )
     }
 
     override fun onDestroy() {

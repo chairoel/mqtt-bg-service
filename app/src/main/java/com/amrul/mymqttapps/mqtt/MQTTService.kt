@@ -18,6 +18,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.amrul.mymqttapps.Constants
 import com.amrul.mymqttapps.R
 
 class MQTTService : Service() {
@@ -25,6 +26,7 @@ class MQTTService : Service() {
     private lateinit var mqttClient: MQTTClientNew
     private lateinit var locationManager: LocationManager
     private lateinit var wakeLock: PowerManager.WakeLock
+    private lateinit var publishTopic: String
 
     override fun onCreate() {
         super.onCreate()
@@ -34,14 +36,27 @@ class MQTTService : Service() {
         wakeLock.acquire(10 * 60 * 1000L /* 10 menit */)
 
 
+        val (serverUrl, clientId, topic) = loadConfig()
+        publishTopic = topic
+        mqttClient = MQTTClientNew.getInstance(this, serverUrl, clientId)
+
         // Inisialisasi MQTTClient
-        mqttClient = MQTTClientNew.getInstance(this, SERVER_URL, CLIENT_ID)
+//        mqttClient = MQTTClientNew.getInstance(this, SERVER_URL_DEFAULT, CLIENT_ID_DEFAULT)
 
         // Inisialisasi LocationManager
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
         connectToMQTT()
         startLocationUpdates()
+    }
+
+    private fun loadConfig(): Triple<String, String, String> {
+        val pref = getSharedPreferences(Constants.MQTT_CONFIG, Context.MODE_PRIVATE)
+        val serverUrl = pref.getString(Constants.SERVER_URL, Constants.SERVER_URL_DEFAULT)
+        val clientId = pref.getString(Constants.CLIENT_ID, Constants.CLIENT_ID_DEFAULT)
+        val publishTopic = pref.getString(Constants.PUBLISH_TOPIC, Constants.PUBLISH_TOPIC_DEFAULT)
+
+        return Triple(serverUrl ?: "", clientId ?: "", publishTopic ?: "")
     }
 
     private fun connectToMQTT() {
@@ -85,7 +100,7 @@ class MQTTService : Service() {
         val longitude = location.longitude
         val payload = """{"latitude":$latitude,"longitude":$longitude}"""
 
-        mqttClient.publish(PUBLISH_TOPIC, payload, qos = 1, retained = false)
+        mqttClient.publish(publishTopic, payload, qos = 1, retained = false)
         Log.d("MQTTService", "Published location: $payload")
 
         // Kirim broadcast lokal
@@ -183,9 +198,9 @@ class MQTTService : Service() {
         private const val LOCATION_UPDATE_DISTANCE: Float = 0f // Tidak ada jarak minimal
         private const val ACTION_STOP_SERVICE = "STOP_MQTT_SERVICE"
 
-        const val SERVER_URL = "tcp://track.transjakarta.co.id:1883" // Server hostname dan port
-        const val CLIENT_ID = "001" // Ganti dengan ID unik
-        const val PUBLISH_TOPIC = "/tracking/obu/TEST"
+//        const val SERVER_URL_DEFAULT = "tcp://track.transjakarta.co.id:1883" // Server hostname dan port
+//        const val CLIENT_ID_DEFAULT = "001" // Ganti dengan ID unik
+//        const val PUBLISH_TOPIC_DEFAULT = "/tracking/obu/TEST"
 
         const val ACTION_PUBLISH_DATA = "PUBLISH_DATA"
         const val EXTRA_DATA = "EXTRA_DATA"
