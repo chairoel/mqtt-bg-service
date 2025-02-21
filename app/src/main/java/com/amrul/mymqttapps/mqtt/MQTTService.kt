@@ -20,8 +20,15 @@ import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.amrul.mymqttapps.Constants
 import com.amrul.mymqttapps.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class MQTTService : Service() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private lateinit var mqttClient: MQTTClientNew
     private lateinit var locationManager: LocationManager
@@ -47,7 +54,7 @@ class MQTTService : Service() {
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
         connectToMQTT()
-        startLocationUpdates()
+//        startLocationUpdates()
     }
 
     private fun loadConfig(): Triple<String, String, String> {
@@ -63,9 +70,16 @@ class MQTTService : Service() {
         mqttClient.connect(
             onConnected = {
                 Log.d("MQTTService", "Connected to MQTT broker")
+                sendConnectionStatusBroadcast(true)
+
+                // Mulai pembaruan lokasi setelah koneksi berhasil
+                serviceScope.launch {
+                    startLocationUpdates()
+                }
             },
             onConnectionFailed = { exception ->
                 Log.e("MQTTService", "Failed to connect to MQTT broker: ${exception.message}")
+                sendConnectionStatusBroadcast(false)
             }
         )
     }
@@ -95,6 +109,13 @@ class MQTTService : Service() {
         publishLocation(location)
     }
 
+    private fun sendConnectionStatusBroadcast(isConnected: Boolean) {
+        val intent = Intent(ACTION_CONNECTION_STATUS).apply {
+            putExtra(EXTRA_CONNECTION_STATUS, isConnected)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
     private fun publishLocation(location: Location) {
         val latitude = location.latitude
         val longitude = location.longitude
@@ -112,6 +133,8 @@ class MQTTService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        serviceScope.cancel()
 
         // Hentikan foreground service
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -201,6 +224,9 @@ class MQTTService : Service() {
 //        const val SERVER_URL_DEFAULT = "tcp://track.transjakarta.co.id:1883" // Server hostname dan port
 //        const val CLIENT_ID_DEFAULT = "001" // Ganti dengan ID unik
 //        const val PUBLISH_TOPIC_DEFAULT = "/tracking/obu/TEST"
+
+        const val ACTION_CONNECTION_STATUS = "ACTION_CONNECTION_STATUS"
+        const val EXTRA_CONNECTION_STATUS = "EXTRA_CONNECTION_STATUS"
 
         const val ACTION_PUBLISH_DATA = "PUBLISH_DATA"
         const val EXTRA_DATA = "EXTRA_DATA"

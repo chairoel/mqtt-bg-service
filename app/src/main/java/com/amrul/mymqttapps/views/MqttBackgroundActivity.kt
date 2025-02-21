@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -20,15 +22,28 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
 
     private lateinit var binding: ActivityMqttBackgroundBinding
 
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val allGranted = permissions.entries.all { it.value }
+            if (allGranted) {
+                startMQTTService() // Jika semua izin diberikan, mulai service
+            } else {
+                Toast.makeText(this, "Izin lokasi diperlukan untuk menjalankan service!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMqttBackgroundBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val (serverUrl, clientId, topic) = loadConfig(this@MqttBackgroundActivity)
+//        val (serverUrl, clientId, topic) = loadConfig(this@MqttBackgroundActivity)
 
         binding.apply {
-            tvServer.text = serverUrl
+            tvServer.text = getServerUrl(this@MqttBackgroundActivity)
 
             btnConnect.setOnClickListener {
                 startMQTTService()
@@ -40,6 +55,7 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
             }
 
             btnSetting.setOnClickListener {
+                val (serverUrl, clientId, topic) = loadConfig(this@MqttBackgroundActivity)
                 val bottomSheetFragment =
                     SettingsBottomSheet.newInstance(serverUrl, clientId, topic)
                 bottomSheetFragment.onSettingsSaveListener = this@MqttBackgroundActivity
@@ -50,13 +66,29 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
 
     override fun onStart() {
         super.onStart()
+
+        // Register receiver untuk status koneksi MQTT
+        val connectionStatusFilter = IntentFilter(MQTTService.ACTION_CONNECTION_STATUS)
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(connectionStatusReceiver, connectionStatusFilter)
+
         val intentFilter = IntentFilter(MQTTService.ACTION_PUBLISH_DATA)
         LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, intentFilter)
     }
 
     override fun onStop() {
         super.onStop()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(connectionStatusReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(dataReceiver)
+    }
+
+    private val connectionStatusReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == MQTTService.ACTION_CONNECTION_STATUS) {
+                val isConnected = intent.getBooleanExtra(MQTTService.EXTRA_CONNECTION_STATUS, false)
+                updateConnectionStatusUI(isConnected)
+            }
+        }
     }
 
     private val dataReceiver = object : BroadcastReceiver() {
@@ -66,6 +98,19 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
                 updatePublishedDataUI(data)
             }
         }
+    }
+
+    private fun updateConnectionStatusUI(isConnected: Boolean) {
+        val statusText =
+            if (isConnected) "Connected to MQTT broker" else "Failed to connect to MQTT broker"
+        binding.tvStatusConnect.text = statusText
+        binding.tvStatusConnect.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (isConnected) android.R.color.holo_green_dark else android.R.color.holo_red_dark
+            )
+        )
+        Toast.makeText(this, statusText, Toast.LENGTH_SHORT).show()
     }
 
     private fun updatePublishedDataUI(data: String?) {
@@ -85,11 +130,33 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
     }
 
     private fun startMQTTService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // API 34+
+            val permissions = arrayOf(
+                android.Manifest.permission.FOREGROUND_SERVICE_LOCATION,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            )
+
+            val allGranted = permissions.all {
+                ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+            }
+
+            if (!allGranted) {
+                requestPermissionLauncher.launch(permissions) // Gunakan ActivityResultLauncher
+                return
+            }
+        }
+
         val serviceIntent = Intent(this, MQTTService::class.java)
         ContextCompat.startForegroundService(this, serviceIntent)
-        updateUI("Service Started (MQTT + GPS)", true)
-        Toast.makeText(this, "Service Started", Toast.LENGTH_SHORT).show()
     }
+
+
+    /* private fun startMQTTService() {
+         val serviceIntent = Intent(this, MQTTService::class.java)
+         ContextCompat.startForegroundService(this, serviceIntent)
+ //        updateUI("Service Started (MQTT + GPS)", true)
+ //        Toast.makeText(this, "Service Started", Toast.LENGTH_SHORT).show()
+     }*/
 
     private fun stopMQTTService() {
         val serviceIntent = Intent(this, MQTTService::class.java)
@@ -109,6 +176,11 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
                 )
             )
         }
+    }
+
+    private fun getServerUrl(context: Context): String {
+        val pref = context.getSharedPreferences(Constants.MQTT_CONFIG, Context.MODE_PRIVATE)
+        return pref.getString(Constants.SERVER_URL, Constants.SERVER_URL_DEFAULT) ?: ""
     }
 
     private fun loadConfig(context: Context): Triple<String, String, String> {
