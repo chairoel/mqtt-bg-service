@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.app.RemoteInput.Source
 import androidx.core.content.ContextCompat
 import com.amrul.mymqttapps.Constants
 import com.amrul.mymqttapps.OnSettingsSaveListener
@@ -22,13 +23,24 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
     private var clientId: String? = null
     private var publishTopic: String? = null
 
+    private var busBodyNo: String? = null
+    private var busDeviceId: String? = null
+    private var source: String? = null
+
     companion object {
-        fun newInstance(serverUrl: String, clientId: String, publishTopic: String): SettingsBottomSheet {
+        fun newInstance(
+            serverUrl: String, clientId: String, publishTopic: String,
+            busBodyNo: String, busDeviceId: String, source: String
+        ): SettingsBottomSheet {
             val fragment = SettingsBottomSheet()
             val bundle = Bundle().apply {
                 putString(Constants.SERVER_URL, serverUrl)
                 putString(Constants.CLIENT_ID, clientId)
                 putString(Constants.PUBLISH_TOPIC, publishTopic)
+
+                putString(Constants.BUS_BODY_NO, busBodyNo)
+                putString(Constants.BUS_DEVICE_ID, busDeviceId)
+                putString(Constants.SOURCE, source)
             }
             fragment.arguments = bundle
             return fragment
@@ -41,6 +53,11 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
             serverUrl = it.getString(Constants.SERVER_URL)
             clientId = it.getString(Constants.CLIENT_ID)
             publishTopic = it.getString(Constants.PUBLISH_TOPIC)
+
+            busBodyNo = it.getString(Constants.BUS_BODY_NO)
+            busDeviceId = it.getString(Constants.BUS_DEVICE_ID)
+            source = it.getString(Constants.SOURCE)
+
         }
     }
 
@@ -61,12 +78,21 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
             etClientId.setText(clientId)
             etPublishTopic.setText(publishTopic)
 
+            etBusBodyNo.setText(busBodyNo)
+            etBusDeviceId.setText(busDeviceId)
+            etSource.setText(source)
+
             btnSave.setOnClickListener {
                 val serverUrl = etServerUrl.text.toString()
                 val clientId = etClientId.text.toString()
                 val publishTopic = etPublishTopic.text.toString()
 
-                onSettingsSaveListener?.onSettingsSave(serverUrl, clientId, publishTopic)
+                val busBodyNo = etBusBodyNo.text.toString()
+                val busDeviceId = etBusDeviceId.text.toString()
+                val source = etSource.text.toString()
+
+                onSettingsSaveListener?.onSettingsSave(serverUrl, clientId, publishTopic,
+                    busBodyNo, busDeviceId, source)
 
                 dismiss()
             }

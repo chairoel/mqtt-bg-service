@@ -15,16 +15,18 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.amrul.mymqttapps.Constants
 import com.amrul.mymqttapps.R
+import com.amrul.mymqttapps.data.Mqtt
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.Date
 
 class MQTTService : Service() {
 
@@ -34,6 +36,10 @@ class MQTTService : Service() {
     private lateinit var locationManager: LocationManager
     private lateinit var wakeLock: PowerManager.WakeLock
     private lateinit var publishTopic: String
+
+    private val gson = Gson()
+    private var lastLocation: Location? = null
+    private var totalDistance: Float = 0f
 
     override fun onCreate() {
         super.onCreate()
@@ -64,6 +70,15 @@ class MQTTService : Service() {
         val publishTopic = pref.getString(Constants.PUBLISH_TOPIC, Constants.PUBLISH_TOPIC_DEFAULT)
 
         return Triple(serverUrl ?: "", clientId ?: "", publishTopic ?: "")
+    }
+
+    private fun loadBusConfig(): Triple<String, String, String> {
+        val pref = getSharedPreferences(Constants.MQTT_CONFIG, Context.MODE_PRIVATE)
+        val busBodyNo = pref.getString(Constants.BUS_BODY_NO, Constants.BUS_BODY_NO_DEFAULT)
+        val busDeviceId = pref.getString(Constants.BUS_DEVICE_ID, Constants.BUS_DEVICE_ID_DEFAULT)
+        val source = pref.getString(Constants.SOURCE, Constants.SOURCE_DEFAULT)
+
+        return Triple(busBodyNo ?: "", busDeviceId ?: "", source ?: "")
     }
 
     private fun connectToMQTT() {
@@ -106,7 +121,7 @@ class MQTTService : Service() {
     }
 
     private val locationListener = LocationListener { location ->
-        publishLocation(location)
+        publishData(location)
     }
 
     private fun sendConnectionStatusBroadcast(isConnected: Boolean) {
@@ -116,13 +131,32 @@ class MQTTService : Service() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    private fun publishLocation(location: Location) {
-        val latitude = location.latitude
-        val longitude = location.longitude
-        val payload = """{"latitude":$latitude,"longitude":$longitude}"""
+    private fun publishData(location: Location) {
+        val (busBodyNo, busDeviceId, source) = loadBusConfig()
 
-        mqttClient.publish(publishTopic, payload, qos = 1, retained = false)
-        Log.d("MQTTService", "Published location: $payload")
+        lastLocation?.let {
+            val distance = it.distanceTo(location)
+            totalDistance += distance
+        }
+
+        lastLocation = location
+
+        val locationData = Mqtt(
+            busBodyNo = busBodyNo,
+            busDeviceId = busDeviceId,
+            latitude = location.latitude,
+            longitude = location.longitude,
+            speed = location.speed,
+            bearing = location.bearing,
+            totalDistance = totalDistance.toDouble(),
+            source = source,
+            deviceTimestamp = Date().time
+        )
+
+        val payload = gson.toJson(locationData)
+
+        mqttClient.publish(publishTopic, payload.toString(), qos = 1, retained = false)
+        Log.d("MQTTService", "Published Data: $payload")
 
         // Kirim broadcast lokal
         val intent = Intent(ACTION_PUBLISH_DATA).apply {

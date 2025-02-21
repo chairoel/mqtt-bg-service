@@ -19,28 +19,38 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="Settings MQTT"
-        android:textAppearance="?attr/textAppearanceHeadline6" />
+        android:text="Settings"
+        android:textStyle="bold"
+        android:textAppearance="?attr/textAppearanceHeadline5" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="24dp">
+        android:layout_height="wrap_content">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
+                android:layout_marginTop="24dp"
+                android:text="Mqtt Setup"
+                android:textStyle="bold"
+                android:textAppearance="?attr/textAppearanceSubtitle1" />
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/il_server_url"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
                 android:layout_marginTop="20dp"
                 android:hint="@string/server_url"
                 app:boxBackgroundColor="@color/white"
                 app:helperTextTextColor="@color/blue">
-<!--                app:prefixText="tcp://">-->
+                <!--                app:prefixText="tcp://">-->
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_server_url"
@@ -55,6 +65,7 @@
                 android:id="@+id/il_client_id"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
                 android:layout_marginTop="20dp"
                 android:hint="@string/client_id"
                 app:boxBackgroundColor="@color/white"
@@ -73,6 +84,7 @@
                 android:id="@+id/il_publish_topic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
                 android:layout_marginTop="20dp"
                 android:hint="@string/publish_topic"
                 app:boxBackgroundColor="@color/white"
@@ -87,11 +99,86 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginTop="16dp"
+                android:background="@color/blue" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
+                android:layout_marginTop="24dp"
+                android:text="Bus Setup"
+                android:textStyle="bold"
+                android:textAppearance="?attr/textAppearanceSubtitle1" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/il_bus_body_no"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
+                android:layout_marginTop="20dp"
+                android:hint="@string/bus_body_number"
+                app:boxBackgroundColor="@color/white"
+                app:helperTextTextColor="@color/blue">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_bus_body_no"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:textSize="15sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/il_bus_device_id"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
+                android:layout_marginTop="20dp"
+                android:hint="@string/bus_device_id"
+                app:boxBackgroundColor="@color/white"
+                app:helperTextTextColor="@color/blue">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_bus_device_id"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:textSize="15sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/il_source"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="24dp"
+                android:layout_marginTop="20dp"
+                android:hint="@string/source"
+                app:boxBackgroundColor="@color/white"
+                app:helperTextTextColor="@color/blue">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_source"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:textSize="15sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_save"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:layout_marginHorizontal="24dp"
                 android:text="@string/save" />
 
 
