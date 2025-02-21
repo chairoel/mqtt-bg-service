@@ -15,36 +15,39 @@ import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.amrul.mymqttapps.Constants
 import com.amrul.mymqttapps.OnSettingsSaveListener
+import com.amrul.mymqttapps.data.Mqtt
 import com.amrul.mymqttapps.databinding.ActivityMqttBackgroundBinding
 import com.amrul.mymqttapps.mqtt.MQTTService
+import com.google.gson.Gson
 
 class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
 
     private lateinit var binding: ActivityMqttBackgroundBinding
+    private val gson = Gson()
 
-    private val requestForegroundServicePermissionLauncher =
-        registerForActivityResult(
-            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-            if (isGranted) {
-                startMQTTService() // Jalankan service setelah semua izin diberikan
-            } else {
-                Toast.makeText(this, "Izin lokasi diperlukan agar service berjalan!", Toast.LENGTH_SHORT).show()
-            }
+    private val requestForegroundServicePermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startMQTTService() // Jalankan service setelah semua izin diberikan
+        } else {
+            Toast.makeText(
+                this, "Izin lokasi diperlukan agar service berjalan!", Toast.LENGTH_SHORT
+            ).show()
         }
+    }
 
-    private val requestNotificationPermissionLauncher =
-        registerForActivityResult(
-            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-            if (isGranted) {
-                checkAndRequestForegroundServicePermission() // Setelah notifikasi, lanjut cek izin lokasi
-            } else {
-                Toast.makeText(this, "Izin notifikasi diperlukan agar service berjalan!", Toast.LENGTH_SHORT).show()
-            }
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            checkAndRequestForegroundServicePermission() // Setelah notifikasi, lanjut cek izin lokasi
+        } else {
+            Toast.makeText(
+                this, "Izin notifikasi diperlukan agar service berjalan!", Toast.LENGTH_SHORT
+            ).show()
         }
-
-
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,8 +71,10 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
 
             btnSetting.setOnClickListener {
                 val (serverUrl, clientId, topic) = loadConfig(this@MqttBackgroundActivity)
-                val bottomSheetFragment =
-                    SettingsBottomSheet.newInstance(serverUrl, clientId, topic)
+                val (busBodyNo, busDeviceId, source) = loadBusConfig(this@MqttBackgroundActivity)
+                val bottomSheetFragment = SettingsBottomSheet.newInstance(
+                    serverUrl, clientId, topic, busBodyNo, busDeviceId, source
+                )
                 bottomSheetFragment.onSettingsSaveListener = this@MqttBackgroundActivity
                 bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
             }
@@ -125,7 +130,7 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
         Toast.makeText(this, statusText, Toast.LENGTH_SHORT).show()
     }
 
-    private fun updatePublishedDataUI(data: String?) {
+    /*private fun updatePublishedDataUI(data: String?) {
         if (data?.isNotEmpty() == true) {
             val formattedData = data
                 .replace(",", ",\n")
@@ -139,13 +144,41 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
             binding.tvBracketClose.visibility = View.GONE
             binding.tvData.text = "-"
         }
+    }*/
+
+    private fun updatePublishedDataUI(jsonData: String?) {
+        if (!jsonData.isNullOrEmpty()) {
+            try {
+                // Konversi JSON ke objek LocationData
+                val locationData = gson.fromJson(jsonData, Mqtt::class.java)
+
+                // Tampilkan data di UI
+                binding.tvBracketOpen.visibility = View.VISIBLE
+                binding.tvBracketClose.visibility = View.VISIBLE
+                binding.tvData.text = """
+                Latitude: ${locationData.latitude}
+                Longitude: ${locationData.longitude}
+                Total Distance: ${locationData.totalDistance} meters""".trimIndent()
+
+            } catch (e: Exception) {
+                Log.e("updatePublishedDataUI", "Error parsing JSON: ${e.message}")
+                binding.tvBracketOpen.visibility = View.GONE
+                binding.tvBracketClose.visibility = View.GONE
+                binding.tvData.text = "Error parsing data"
+            }
+        } else {
+            binding.tvBracketOpen.visibility = View.GONE
+            binding.tvBracketClose.visibility = View.GONE
+            binding.tvData.text = "-"
+        }
     }
 
     private fun startMQTTService() {
         // Cek izin notifikasi di Android 13+ (API 33+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             return
@@ -156,9 +189,9 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
     }
 
     private fun checkAndRequestForegroundServicePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.FOREGROUND_SERVICE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.FOREGROUND_SERVICE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestForegroundServicePermissionLauncher.launch(android.Manifest.permission.FOREGROUND_SERVICE_LOCATION)
             return
@@ -168,7 +201,6 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
         val serviceIntent = Intent(this, MQTTService::class.java)
         ContextCompat.startForegroundService(this, serviceIntent)
     }
-
 
 
     /* private fun startMQTTService() {
@@ -212,11 +244,24 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
         return Triple(serverUrl ?: "", clientId ?: "", publishTopic ?: "")
     }
 
+    private fun loadBusConfig(context: Context): Triple<String, String, String> {
+        val pref = context.getSharedPreferences(Constants.MQTT_CONFIG, Context.MODE_PRIVATE)
+        val busBodyNo = pref.getString(Constants.BUS_BODY_NO, Constants.BUS_BODY_NO_DEFAULT)
+        val busDeviceId = pref.getString(Constants.BUS_DEVICE_ID, Constants.BUS_DEVICE_ID_DEFAULT)
+        val source = pref.getString(Constants.SOURCE, Constants.SOURCE_DEFAULT)
+
+        return Triple(busBodyNo ?: "", busDeviceId ?: "", source ?: "")
+    }
+
+
     private fun saveMQTTConfig(
         context: Context,
         serverUrl: String,
         clientId: String,
-        publishTopic: String
+        publishTopic: String,
+        busBodyNo: String,
+        busDeviceId: String,
+        source: String
     ) {
         val sharedPreferences =
             context.getSharedPreferences(Constants.MQTT_CONFIG, Context.MODE_PRIVATE)
@@ -225,10 +270,21 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
         editor.putString(Constants.SERVER_URL, serverUrl)
         editor.putString(Constants.CLIENT_ID, clientId)
         editor.putString(Constants.PUBLISH_TOPIC, publishTopic)
+
+        editor.putString(Constants.BUS_BODY_NO, busBodyNo)
+        editor.putString(Constants.BUS_DEVICE_ID, busDeviceId)
+        editor.putString(Constants.SOURCE, source)
         editor.apply()
     }
 
-    override fun onSettingsSave(serverUrl: String, clientId: String, publishTopic: String) {
+    override fun onSettingsSave(
+        serverUrl: String,
+        clientId: String,
+        publishTopic: String,
+        busBodyNo: String,
+        busDeviceId: String,
+        source: String
+    ) {
         Log.d("SettingsSave", "Server URL: $serverUrl")
         Log.d("SettingsSave", "Client ID: $clientId")
         Log.d("SettingsSave", "Publish Topic: $publishTopic")
@@ -239,7 +295,10 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
             context = this,
             serverUrl = serverUrl,
             clientId = clientId,
-            publishTopic = publishTopic
+            publishTopic = publishTopic,
+            busBodyNo = busBodyNo,
+            busDeviceId = busDeviceId,
+            source = source
         )
     }
 

@@ -13,4 +13,7 @@
     <string name="publish_topic">Publish Topic</string>
     <string name="server_url">Server URL</string>
     <string name="save">Save</string>
+    <string name="bus_body_number">Bus Body Number</string>
+    <string name="bus_device_id">Bus Device ID</string>
+    <string name="source">Source</string>
 </resources>
