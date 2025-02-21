@@ -28,38 +28,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".views.HomeActivity"
-            android:exported="false">
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
-
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
-        </activity>
-        <activity
-            android:name=".views.LocationBackgroundActivity"
-            android:exported="false" />
-        <activity
-            android:name=".views.MqttActivity"
-            android:exported="false" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="false">
-
-            <!-- <intent-filter> -->
-            <!-- <action android:name="android.intent.action.MAIN" /> -->
-
-
-            <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
-            <!-- </intent-filter> -->
-        </activity>
-
-        <service
-            android:name=".LocationService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location" />
 
         <service
             android:name=".mqtt.MQTTService"

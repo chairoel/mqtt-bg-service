@@ -167,15 +167,27 @@ class MQTTService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP_SERVICE) {
-            stopSelf() // Hentikan service
-            Toast.makeText(this, "Service stopped", Toast.LENGTH_SHORT).show()
-            Log.d("MQTTService", "Service stopped by user")
-        } else {
-            startForeground(
-                NOTIFICATION_ID,
-                createNotification("MQTT Service Running", "Sending location to MQTT broker...")
-            )
+            stopSelf()
+            return START_NOT_STICKY
         }
+
+        // Periksa izin foreground service di Android 14+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            checkSelfPermission(android.Manifest.permission.FOREGROUND_SERVICE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.e(
+                "MQTTService",
+                "Izin FOREGROUND_SERVICE_LOCATION tidak diberikan. Service dihentikan."
+            )
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        // **Pastikan Notifikasi Dibuat Sebelum startForeground**
+        val notification =
+            createNotification("MQTT Service Running", "Sending location to MQTT broker...")
+        startForeground(NOTIFICATION_ID, notification)
+
         return START_STICKY
     }
 
