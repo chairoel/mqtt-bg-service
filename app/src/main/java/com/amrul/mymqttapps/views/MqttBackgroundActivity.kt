@@ -22,17 +22,29 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
 
     private lateinit var binding: ActivityMqttBackgroundBinding
 
-    private val requestPermissionLauncher =
+    private val requestForegroundServicePermissionLauncher =
         registerForActivityResult(
-            androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-        ) { permissions ->
-            val allGranted = permissions.entries.all { it.value }
-            if (allGranted) {
-                startMQTTService() // Jika semua izin diberikan, mulai service
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                startMQTTService() // Jalankan service setelah semua izin diberikan
             } else {
-                Toast.makeText(this, "Izin lokasi diperlukan untuk menjalankan service!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Izin lokasi diperlukan agar service berjalan!", Toast.LENGTH_SHORT).show()
             }
         }
+
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                checkAndRequestForegroundServicePermission() // Setelah notifikasi, lanjut cek izin lokasi
+            } else {
+                Toast.makeText(this, "Izin notifikasi diperlukan agar service berjalan!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,25 +142,33 @@ class MqttBackgroundActivity : AppCompatActivity(), OnSettingsSaveListener {
     }
 
     private fun startMQTTService() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // API 34+
-            val permissions = arrayOf(
-                android.Manifest.permission.FOREGROUND_SERVICE_LOCATION,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            )
-
-            val allGranted = permissions.all {
-                ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-            }
-
-            if (!allGranted) {
-                requestPermissionLauncher.launch(permissions) // Gunakan ActivityResultLauncher
-                return
-            }
+        // Cek izin notifikasi di Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            return
         }
 
+        // Cek izin foreground service location di Android 14+ (API 34+)
+        checkAndRequestForegroundServicePermission()
+    }
+
+    private fun checkAndRequestForegroundServicePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.FOREGROUND_SERVICE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestForegroundServicePermissionLauncher.launch(android.Manifest.permission.FOREGROUND_SERVICE_LOCATION)
+            return
+        }
+
+        // Jika semua izin sudah diberikan, jalankan service
         val serviceIntent = Intent(this, MQTTService::class.java)
         ContextCompat.startForegroundService(this, serviceIntent)
     }
+
 
 
     /* private fun startMQTTService() {
